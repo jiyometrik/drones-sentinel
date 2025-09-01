@@ -1,5 +1,5 @@
 """
-dataloader.py
+./sourdough.py
 A general script for extracting the raw collected data from the zip files and organising them
 """
 
@@ -13,6 +13,7 @@ import tsfel
 
 DATADIR = os.path.join(os.getcwd(), "data")
 ZIPDIR = os.path.join(os.getcwd(), "data/zip")
+FIXED_LENGTH = -1
 
 
 def unload_zip_files(zipdir, extractdir) -> None:
@@ -55,37 +56,49 @@ def load_ifft(path):
     raise ValueError(f"Could not interpret {path}")
 
 
-def get_features(datadir):
+def get_features(datadir, fixed_length):
     """
     obtain the tsfel features from IFFT files, according to a specified data directory
     """
     cfg = tsfel.get_features_by_domain()
     ifft_fpaths = glob.glob(os.path.join(datadir, "*", "*", "sweep", "*.ifft"))
 
-    feature_list, labels = [], []
+    feature_list, labels, signals = [], [], []
     fpaths_clean = []
     for ifft_fpath in ifft_fpaths:
         try:
             data, _ = load_ifft(ifft_fpath)
             signal = np.abs(data) if np.iscomplexobj(data) else data
 
-            # Extract TSFEL features
-            feature_df = tsfel.time_series_features_extractor(cfg, signal, fs=1000)
-            feature_list.append(feature_df)
+            if fixed_length == -1:
+                # Extract TSFEL features
+                feature_df = tsfel.time_series_features_extractor(cfg, signal, fs=1000)
+                feature_list.append(feature_df)
 
-            # Correct label: parent folder of 'sweep'
+                # Correct label: parent folder of 'sweep'
+                fpaths_clean.append(ifft_fpath)
+
+                X = pd.concat(feature_list, ignore_index=True)
+            else:
+                if len(signal) < fixed_length:
+                    signal = np.pad(signal, (0, fixed_length - len(signal)))
+                else:
+                    signal = signal[:fixed_length]
+                signals.append(signal)
             label = os.path.basename(os.path.dirname(os.path.dirname(ifft_fpath)))
             labels.append(label)
-            fpaths_clean.append(ifft_fpath)
-
         except Exception as e:
             print(f"Skipping {ifft_fpath}: {e}")
-
-    X = pd.concat(feature_list, ignore_index=True)
     y = pd.Series(labels, name="label")
+
+    # if we're looking to rank RF features, then use the latter
+    if fixed_length != -1:
+        X = np.array(signals, dtype=np.float32)
+    else:
+        X = pd.concat(feature_list, ignore_index=True)
     return X, y
 
 
 if __name__ == "__main__":
     unload_zip_files(zipdir=ZIPDIR, extractdir=DATADIR)
-    get_features(datadir=DATADIR)
+    get_features(datadir=DATADIR, fixed_length=FIXED_LENGTH)
