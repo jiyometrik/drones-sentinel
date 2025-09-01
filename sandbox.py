@@ -4,23 +4,38 @@ The main script for running the helper files.
 To be used to test out difference classification model architectures.
 """
 
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import torchvision.transforms as transforms
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder
 
 import sourdough as sd
-from mlsuite import cnn1d, random_forest, starter
+import spectrogram as spectro
+from mlsuite import cnn1d, lenet, random_forest, starter
 
 # want rf? use -1
 FIXED_LENGTH = 4096
 LR = 1e-3
 
 # Preprocess all IFFT files
-sd.unload_zip_files(zipdir=sd.ZIPDIR, extractdir=sd.DATADIR)
-X, y = sd.get_features(datadir=sd.DATADIR, fixed_length=FIXED_LENGTH)
+# sd.unload_zip_files(zipdir=sd.ZIPDIR, extractdir=sd.DATADIR)
+# X, y = sd.get_features(datadir=sd.DATADIR, fixed_length=FIXED_LENGTH)
+spectrograms, labels = spectro.get_spectrograms(
+    datadir=sd.DATADIR,
+    spectro_dir=spectro.SPECTRODIR,
+    fs=1000,  # Adjust based on your sampling frequency
+    image_size=(224, 224),  # Common size for image classification
+    save_images=True,
+    method="stft",  # or 'cwt' for continuous wavelet transform
+)
 
-# Get ready for some deep learning
-helper = starter.Starter(X, y, num_epochs=50)
+# Normalize spectrograms to [0, 1] range
+X_normalized = spectrograms.astype(np.float32) / 255.0
+
+helper = starter.Starter(X_normalized, labels)
 helper.create_datasets()
 
 train_ds, test_ds = helper.train_dataset, helper.test_dataset
@@ -29,8 +44,10 @@ n_classes, n_epochs = helper.num_classes, helper.num_epochs
 
 device = helper.device
 
+print(f"{train_ds.__len__ = }")
+
 # --- PLAYGROUND: change only the variables here ---
-model = cnn1d.CNN1D(input_length=FIXED_LENGTH, num_classes=n_classes)
+model = lenet.LeNet(num_classes=n_classes)
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.Adam(model.parameters(), lr=LR)
 

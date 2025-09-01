@@ -7,6 +7,8 @@ import glob
 import os
 import zipfile
 
+import cv2
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import tsfel
@@ -97,8 +99,3 @@ def get_features(datadir, fixed_length):
     else:
         X = pd.concat(feature_list, ignore_index=True)
     return X, y
-
-
-if __name__ == "__main__":
-    unload_zip_files(zipdir=ZIPDIR, extractdir=DATADIR)
-    get_features(datadir=DATADIR, fixed_length=FIXED_LENGTH)
