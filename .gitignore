@@ -5,6 +5,9 @@
 *.zip
 *.png
 
+# MAC STUFF
+__MACOSX/
+
 # ML 
 checkpoints/
 lightning_logs/
