@@ -6,17 +6,17 @@ from dataclasses import dataclass
 from typing import Literal
 
 from app.constants import (
+    AMP_ENABLE,
+    BIN_WIDTH_HZ,
+    FREQUENCY_HZ,
+    HACKRF_BUFFER_CLEAR_CMD,
+    LNA_GAIN,
+    NUM_SAMPLES,
+    NUM_SWEEPS,
+    SAMPLE_RATE_HZ,
     START_FREQ_MHZ,
     STOP_FREQ_MHZ,
-    FREQUENCY_HZ,
-    AMP_ENABLE,
-    LNA_GAIN,
     VGA_GAIN,
-    NUM_SWEEPS,
-    BIN_WIDTH_HZ,
-    SAMPLE_RATE_HZ,
-    NUM_SAMPLES,
-    HACKRF_BUFFER_CLEAR_CMD,
 )
 from app.modules.logging.logger import logger
 
@@ -28,7 +28,7 @@ from app.modules.logging.logger import logger
 #       │  └─ [RunNumber].iq
 #       └─ sweep/
 #          └─ [RunNumber].bin
-DATA_DIR = "data/output/DatasetCollection_Scis1Subway_060825"
+DATA_DIR = "data/output/DatasetCollection_HCJCField_110925"
 MODE = "Ifft"  # Mode depends on the specific experiment
 DISTANCE = "0m"  # Distance depends on the specific experiment
 INDEX = "01"

@@ -2,16 +2,11 @@
 analysis.py
 """
 
-from douglas.rx_data_analyser import RxConfig, RxDataAnalyser
-from douglas.sweep_data_analyser import SweepConfig, SweepDataAnalyser
-
-# from data.collection.collection import OUTPUT_DIRECTORY
+from collection import OUTPUT_DIRECTORY
+from rx_data_analyser import RxConfig, RxDataAnalyser
+from sweep_data_analyser import SweepConfig, SweepDataAnalyser
 
 # from data.collection.dual_sdr_collection import OUTPUT_DIRECTORY
-
-OUTPUT_DIRECTORY = (
-    "data/output/DatasetCollection_Scis1Subway_060825/DjiRcN1_Binary_50m_1_40_40_01"
-)
 
 if __name__ == "__main__":
     rx_config = RxConfig(
