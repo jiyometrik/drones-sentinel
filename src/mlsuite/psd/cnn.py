@@ -1,6 +1,6 @@
 """
-src.mlsuite.cnn
-All the CNNs used for classification tasks
+src.mlsuite.psd.cnn
+All the CNNs used for PSD classification tasks
 """
 
 import pytorch_lightning as pl

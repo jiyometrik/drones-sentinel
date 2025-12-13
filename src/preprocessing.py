@@ -6,6 +6,7 @@ helpful methods to preprocess data for training and evaluation
 import glob
 import os
 import zipfile
+from typing import Optional
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -67,38 +68,146 @@ def read_raw_ifft(fpath, datadir=cts.DATADIR) -> np.ndarray:
     )
 
 
-def compute_stft(iq_data, sample_rate=cts.SAMPLE_RATE, nperseg=8192, visualise=False):
+def compute_stft(
+    iq_data: np.ndarray,
+    nperseg: int = cts.TARGET_FREQ,
+    noverlap: Optional[int] = cts.TARGET_TIME,
+    nfft: Optional[int] = None,
+    sample_rate: float = cts.SAMPLE_RATE,
+    window: str = "hann",
+    representation: str = "magnitude",
+):
     """
-    compute_stft(iq_data, sample_rate, nperseg=8192, visualise=False) -> (f, t, Zxx)
-        - iq_data: numpy array of IQ data
-        - sample_rate: sample rate (in Hz)
-        - nperseg: number of samples per segment for STFT
-        - visualise: whether to plot the STFT result
-    computes the short-time fourier transform of IFFT data, in numpy.ndarray
+    compute STFT from IQ data.
+        - iq_data: Complex IQ samples
+        - nperseg: Length of each segment (window size)
+        - noverlap: Number of points to overlap (default: nperseg // 2)
+        - nfft: FFT size (default: nperseg, increase for zero-padding)
+        - window: Window function ('hann', 'hamming', 'blackman', etc.)
+        - sample_rate: Sampling frequency
+    returns:
+        - f: Array of frequency bins
+        - t: Array of time bins
+        - Zxx: STFT matrix (complex-valued)
     """
+
+    # make IQ data complex-valued
+    if not np.iscomplexobj(iq_data):
+        print("[WARN] IQ data is not complex. Converting float to complex.")
+        # assume interleaved I/Q if float
+        if len(iq_data) % 2 == 0:
+            iq_data = iq_data[::2] + 1j * iq_data[1::2]
+        else:
+            iq_data = iq_data.astype(np.complex64)
+
     f, t, Zxx = signal.stft(
         iq_data,
         fs=sample_rate,
         nperseg=nperseg,
-        return_onesided=False,  # two-sided spectrum
+        noverlap=noverlap,
+        nfft=nperseg if nfft is None else nfft,
+        window=window,
+        return_onesided=False,
+        boundary=None,
+        padded=True,
     )
 
-    # Shift frequencies to center around 0 Hz
-    f = np.fft.fftshift(f)
-    Zxx = np.fft.fftshift(Zxx, axes=0)
+    # represent data properly
+    if representation == "magnitude":
+        mag, phase = np.abs(Zxx), np.angle(Zxx)
+        rep = np.stack([mag, phase], axis=0)
+    elif representation == "real_imag":
+        rep = np.stack([Zxx.real, Zxx.imag], axis=0)
+    else:
+        raise ValueError(f"[ERROR] Unknown STFT representation '{representation}'")
+    return f, t, rep
 
-    if visualise:
-        print("[OK] Plotting STFT")
-        plt.figure(figsize=(12, 8))
-        plt.pcolormesh(t, f / 1e6, np.abs(Zxx), shading="gouraud")
-        plt.title("Short-Time Fourier Transform (STFT)")
-        plt.xlabel("Time [s]")
-        plt.ylabel("Frequency [MHz]")
-        plt.colorbar(label="Magnitude")
-        plt.grid(True)
-        plt.show()
 
-    return f, t, Zxx
+def pad_spectrogram(
+    spectrogram: np.ndarray,
+    target_freq: Optional[int] = None,
+    target_time: Optional[int] = None,
+    pad_mode: str = "constant",
+    pad_value: float = 0.0,
+) -> np.ndarray:
+    """
+    pad or crop spectrogram to fixed dimensions.
+        - spectrogram: Input spectrogram (freq, time) or (channels, freq, time)
+        - target_freq: Target frequency dimension (None = no change)
+        - target_time: Target time dimension (None = no change)
+        - pad_mode: Padding mode ('constant', 'edge', 'reflect', 'wrap')
+        - pad_value: Value for constant padding (only used if pad_mode='constant')
+    returns:
+        - padded/cropped spectrogram with target dimensions
+    """
+    is_multichannel = spectrogram.ndim == 3
+    if is_multichannel:
+        _, freq_bins, time_frames = spectrogram.shape
+    else:
+        freq_bins, time_frames = spectrogram.shape
+
+    # default to current dimensions if not specified
+    target_freq = freq_bins if target_freq is None else target_freq
+    target_time = time_frames if target_time is None else target_time
+
+    # calculate padding/cropping for frequency axis
+    freq_diff = target_freq - freq_bins
+    freq_pad_before = freq_diff // 2
+    freq_pad_after = freq_diff - freq_pad_before
+
+    # calculate padding/cropping for time axis
+    time_diff = target_time - time_frames
+    time_pad_before = time_diff // 2
+    time_pad_after = time_diff - time_pad_before
+
+    # Handle cropping (negative padding)
+    if freq_diff < 0:
+        crop_start = abs(freq_pad_before)
+        crop_end = freq_bins - abs(freq_pad_after)
+        if is_multichannel:
+            spectrogram = spectrogram[:, crop_start:crop_end, :]
+        else:
+            spectrogram = spectrogram[crop_start:crop_end, :]
+        freq_pad_before = 0
+        freq_pad_after = 0
+
+    if time_diff < 0:
+        crop_start = abs(time_pad_before)
+        crop_end = time_frames - abs(time_pad_after)
+        if is_multichannel:
+            spectrogram = spectrogram[:, :, crop_start:crop_end]
+        else:
+            spectrogram = spectrogram[:, crop_start:crop_end]
+        time_pad_before = 0
+        time_pad_after = 0
+
+    # Apply padding
+    if (
+        freq_pad_before > 0
+        or freq_pad_after > 0
+        or time_pad_before > 0
+        or time_pad_after > 0
+    ):
+        if is_multichannel:
+            pad_width = (
+                (0, 0),  # No padding on channel axis
+                (freq_pad_before, freq_pad_after),
+                (time_pad_before, time_pad_after),
+            )
+        else:
+            pad_width = (
+                (freq_pad_before, freq_pad_after),
+                (time_pad_before, time_pad_after),
+            )
+
+        if pad_mode == "constant":
+            spectrogram = np.pad(
+                spectrogram, pad_width, mode="constant", constant_values=pad_value
+            )
+        else:
+            spectrogram = np.pad(spectrogram, pad_width, mode=pad_mode)
+
+    return spectrogram
 
 
 def compute_welch_psd(
@@ -135,9 +244,15 @@ def generate_ifft_df(datadir=cts.DATADIR) -> pd.DataFrame:
     reads all IFFT files in the specified directory and returns a DataFrame
     with columns 'dronenum' and 'ifft' containing the drone number and IFFT data
     """
-    ifft_df = pd.DataFrame(
-        columns=["psd", "stft", "dronetype", "frequency_ghz", "distance_m", "gain_mhz"]
-    )
+    column_names = [
+        "psd",
+        "stft",
+        "dronetype",
+        "frequency_ghz",
+        "distance_m",
+        "gain_mhz",
+    ]
+    ifft_df = pd.DataFrame(columns=column_names)
 
     pattern = os.path.join(datadir, "**", "*.ifft")
     ifft_files = glob.glob(pattern, recursive=True)
@@ -151,9 +266,16 @@ def generate_ifft_df(datadir=cts.DATADIR) -> pd.DataFrame:
         psd = np.stack((f, Pxx))
 
         # compute STFT
-        _, _, stft = compute_stft(ifft_data, visualise=False)
+        _, _, stft = compute_stft(ifft_data, representation="magnitude")
+        # pad STFT to fixed size
+        stft = pad_spectrogram(
+            stft,
+            target_freq=cts.TARGET_FREQ,
+            target_time=cts.TARGET_TIME,
+        )
+        print(f"[OK] STFT shape after padding = {stft.shape}")
 
-        # grab the metadata in the filename
+        # grab metadata from filename
         components = os.path.relpath(fpath, datadir).split("\\")[1].split("_")
         if len(components) == 7:
             components.insert(2, "0")  # insert frequency as 0 GHz if missing
@@ -163,18 +285,12 @@ def generate_ifft_df(datadir=cts.DATADIR) -> pd.DataFrame:
         gain_mhz = int(components[5])
 
         # and then load them into the dictionary
-        record = {
-            "psd": psd,
-            "stft": stft,
-            "dronetype": dronetype,
-            "frequency_ghz": freq_ghz,
-            "distance_m": distance_m,
-            "gain_mhz": gain_mhz,
-        }
+        entry = pd.DataFrame(
+            [[psd, stft, dronetype, freq_ghz, distance_m, gain_mhz]],
+            columns=column_names,
+        )
         try:
-            ifft_df = pd.concat(
-                [ifft_df, pd.Series(record).to_frame().T], ignore_index=True
-            )
+            ifft_df = pd.concat([ifft_df, entry], ignore_index=True)
         except (ValueError, TypeError) as e:
             print(f"Error processing file {fpath}: {e}. Skipping.")
     return ifft_df

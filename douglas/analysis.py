@@ -3,8 +3,9 @@ analysis.py
 """
 
 from collection import OUTPUT_DIRECTORY
-from rx_data_analyser import RxConfig, RxDataAnalyser
 from sweep_data_analyser import SweepConfig, SweepDataAnalyser
+
+from douglas.rx_data_analyser import RxConfig, RxDataAnalyser
 
 # from data.collection.dual_sdr_collection import OUTPUT_DIRECTORY
 
@@ -22,4 +23,7 @@ if __name__ == "__main__":
     )
 
     sweep_data_analyser = SweepDataAnalyser(sweep_config)
+    sweep_data_analyser.compute()
+    sweep_data_analyser.compute()
+    sweep_data_analyser.compute()
     sweep_data_analyser.compute()

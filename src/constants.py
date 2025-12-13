@@ -14,3 +14,7 @@ SAMPLE_RATE = 100_000_000
 # DRONETYPES = ['Aquila16', 'Background', 'DjiMini2', 'DjiRcN1']
 LR = 1e-3
 N_EPOCHS = 50
+
+# dimensions for PSDs and STFTs
+TARGET_FREQ = 512
+TARGET_TIME = 256

@@ -3,8 +3,6 @@ main.py
 this hardcarries everything
 """
 
-import os
-
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
@@ -12,8 +10,10 @@ from sklearn.preprocessing import LabelEncoder, StandardScaler
 from torch.utils.data import DataLoader
 
 import src.constants as cts
-import src.mlsuite.cnn as cnn
 import src.mlsuite.datasets as dsets
+
+# import src.mlsuite.psd as psd
+import src.mlsuite.stft as stft
 import src.model as mdl
 import src.preprocessing as prep
 
@@ -36,7 +36,7 @@ creates training and validation datasets, where
 * y are the drone types, indexed 0--3
 """
 scaler, le = StandardScaler(), LabelEncoder()
-X = np.stack(df_all["psd"].values)
+X = np.stack(df_all["stft"].values)
 X_scaled = scaler.fit_transform(X.reshape(X.shape[0], -1))
 X = X_scaled.reshape(X.shape)
 y = le.fit_transform(df_all["drone_idx"].values)
@@ -56,7 +56,7 @@ dl_test = DataLoader(ds_test, batch_size=64, shuffle=False, num_workers=0)
 train any models we create in src/cnn.py with one-shot training loop in src/model.py
 """
 # NOTE change model name here to try different architectures
-model = cnn.VGG_PSDClassifier(num_classes=N_CLASSES, lr=cts.LR)
+model = stft.cnn.SimpleSTFTClassifier(num_classes=N_CLASSES, lr=cts.LR)
 print(model)
 trainer = mdl.train_model(
     model,
