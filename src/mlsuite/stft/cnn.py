@@ -7,6 +7,7 @@ import pytorch_lightning as pl
 import torch
 import torch.nn.functional as F
 import torchmetrics
+import torchvision.models as models
 from torch import nn
 
 
@@ -106,3 +107,35 @@ class SimpleSTFTClassifier(pl.LightningModule):
                 "frequency": 1,
             },
         }
+
+
+class STFTResNet(SimpleSTFTClassifier):
+    """an STFT classifier using ResNet architecture"""
+
+    def __init__(self, num_classes, lr=1e-3, weight_decay=1e-4, transfer_learning=True):
+        super().__init__(num_classes, lr, weight_decay)
+        self.save_hyperparameters()
+        # load a pre-defined ResNet model
+        self.resnet = models.resnet50(pretrained=transfer_learning)
+        self.resnet.conv1 = nn.Conv2d(
+            2, 64, kernel_size=7, stride=2, padding=3, bias=False
+        )
+        self.resnet.fc = nn.Linear(self.resnet.fc.in_features, num_classes)
+
+        self.criterion = nn.CrossEntropyLoss()
+        self.train_acc, self.val_acc = torchmetrics.Accuracy(
+            task="multiclass", num_classes=num_classes
+        ), torchmetrics.Accuracy(task="multiclass", num_classes=num_classes)
+
+    def forward(self, x):
+        """modified forward pass using ResNet instead of existing model architecture"""
+        return self.resnet(x)
+
+    def configure_optimizers(self):
+        return super().configure_optimizers()
+
+    def training_step(self, batch, batch_idx):
+        return super().training_step(batch, batch_idx)
+
+    def validation_step(self, batch, batch_idx):
+        return super().validation_step(batch, batch_idx)
