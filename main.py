@@ -17,7 +17,7 @@ import src.mlsuite.stft as stft
 import src.model as mdl
 import src.preprocessing as prep
 
-# unload data [DONE, skip if already done]
+# WARN unload data [DONE, skip if already done]
 # prep.unload_zip_files(cts.ZIPDIR, cts.DATADIR)
 
 # process data, and compile into a DataFrame
@@ -32,7 +32,7 @@ df_all["drone_idx"] = df_all["dronetype"].map(
 
 """
 creates training and validation datasets, where
-* X are the wPSDs, and 
+* X are the wPSDs, and
 * y are the drone types, indexed 0--3
 """
 scaler, le = StandardScaler(), LabelEncoder()
@@ -58,7 +58,6 @@ dl_test = DataLoader(ds_test, batch_size=16, shuffle=False, num_workers=n_worker
 train any models we create in src/cnn.py with one-shot training loop in src/model.py
 """
 # NOTE change model name here to try different architectures
-<<<<<<< Updated upstream
 model = stft.cnn.STFTVgg11(num_classes=N_CLASSES, lr=cts.LR)
 print(model)
 trainer = mdl.train_model(
