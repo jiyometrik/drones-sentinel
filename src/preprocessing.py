@@ -276,7 +276,7 @@ def generate_ifft_df(datadir=cts.DATADIR) -> pd.DataFrame:
         print(f"[OK] STFT shape after padding = {stft.shape}")
 
         # grab metadata from filename
-        components = os.path.relpath(fpath, datadir).split("\\")[1].split("_")
+        components = os.path.relpath(fpath, datadir).split(cts.FILE_SEP)[1].split("_")
         if len(components) == 7:
             components.insert(2, "0")  # insert frequency as 0 GHz if missing
         dronetype = components[0]

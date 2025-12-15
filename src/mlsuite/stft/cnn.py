@@ -44,9 +44,10 @@ class STFTSimple(pl.LightningModule):
 
         # some other attributes
         self.criterion = nn.CrossEntropyLoss()
-        self.train_acc, self.val_acc = torchmetrics.Accuracy(
-            task="multiclass", num_classes=num_classes
-        ), torchmetrics.Accuracy(task="multiclass", num_classes=num_classes)
+        self.train_acc, self.val_acc = (
+            torchmetrics.Accuracy(task="multiclass", num_classes=num_classes),
+            torchmetrics.Accuracy(task="multiclass", num_classes=num_classes),
+        )
 
     def forward(self, x):
         """forward pass through the network"""
@@ -96,7 +97,10 @@ class STFTSimple(pl.LightningModule):
             weight_decay=self.hparams.weight_decay,
         )
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-            optimizer, mode="min", factor=0.5, patience=5  # , verbose=True
+            optimizer,
+            mode="min",
+            factor=0.5,
+            patience=5,  # , verbose=True
         )
         return {
             "optimizer": optimizer,
@@ -123,9 +127,10 @@ class STFTResNet(STFTSimple):
         self.resnet.fc = nn.Linear(self.resnet.fc.in_features, num_classes)
 
         self.criterion = nn.CrossEntropyLoss()
-        self.train_acc, self.val_acc = torchmetrics.Accuracy(
-            task="multiclass", num_classes=num_classes
-        ), torchmetrics.Accuracy(task="multiclass", num_classes=num_classes)
+        self.train_acc, self.val_acc = (
+            torchmetrics.Accuracy(task="multiclass", num_classes=num_classes),
+            torchmetrics.Accuracy(task="multiclass", num_classes=num_classes),
+        )
 
     def forward(self, x):
         """modified forward pass using ResNet instead of existing model architecture"""
@@ -140,13 +145,14 @@ class STFTVgg11(STFTSimple):
         self.save_hyperparameters()
         # load a pre-defined VGG11 model
         self.vgg11 = models.vgg11(weights="default")
-        self.vgg11.features[0] = nn.Conv2d(2, 64, kernel_size=3, padding=1)
+        self.vgg11.features[0] = nn.Conv2d(2, 64, kernel_size=3, padding=1, bias=False)
         self.vgg11.classifier[-1] = nn.Linear(4096, num_classes)
 
         self.criterion = nn.CrossEntropyLoss()
-        self.train_acc, self.val_acc = torchmetrics.Accuracy(
-            task="multiclass", num_classes=num_classes
-        ), torchmetrics.Accuracy(task="multiclass", num_classes=num_classes)
+        self.train_acc, self.val_acc = (
+            torchmetrics.Accuracy(task="multiclass", num_classes=num_classes),
+            torchmetrics.Accuracy(task="multiclass", num_classes=num_classes),
+        )
 
     def forward(self, x):
         """modified forward pass using VGG11 instead of existing model architecture"""

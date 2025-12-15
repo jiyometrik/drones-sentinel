@@ -4,8 +4,10 @@ A list of helpful constants (filepaths, sample rates, etc.) used throughout the 
 """
 
 import os
+import sys
 
-from sympy import N
+OPERATING_SYSTEM = sys.platform
+FILE_SEP = "\\" if OPERATING_SYSTEM == "win32" else "/"
 
 DATADIR = os.path.join(os.getcwd(), "data")
 ZIPDIR = os.path.join(os.getcwd(), "data/zip")
@@ -13,7 +15,7 @@ SAMPLE_RATE = 100_000_000
 
 # DRONETYPES = ['Aquila16', 'Background', 'DjiMini2', 'DjiRcN1']
 LR = 1e-3
-N_EPOCHS = 50
+N_EPOCHS = 20
 
 # dimensions for PSDs and STFTs
 TARGET_FREQ = 512
