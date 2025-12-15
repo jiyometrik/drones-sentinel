@@ -11,11 +11,11 @@ import torchvision.models as models
 from torch import nn
 
 
-class SimpleSTFTClassifier(pl.LightningModule):
+class STFTSimple(pl.LightningModule):
     """a simple 2D CNN for classifying STFTs"""
 
     def __init__(self, num_classes, lr=1e-3, weight_decay=1e-4):
-        super(SimpleSTFTClassifier, self).__init__()
+        super(STFTSimple, self).__init__()
         self.save_hyperparameters()
 
         self.conv1 = nn.Conv2d(2, 32, kernel_size=5, padding=2)
@@ -109,7 +109,7 @@ class SimpleSTFTClassifier(pl.LightningModule):
         }
 
 
-class STFTResNet(SimpleSTFTClassifier):
+class STFTResNet(STFTSimple):
     """an STFT classifier using ResNet architecture"""
 
     def __init__(self, num_classes, lr=1e-3, weight_decay=1e-4, transfer_learning=True):
@@ -131,11 +131,23 @@ class STFTResNet(SimpleSTFTClassifier):
         """modified forward pass using ResNet instead of existing model architecture"""
         return self.resnet(x)
 
-    def configure_optimizers(self):
-        return super().configure_optimizers()
 
-    def training_step(self, batch, batch_idx):
-        return super().training_step(batch, batch_idx)
+class STFTVgg11(STFTSimple):
+    """an STFT classifier using VGG11 architecture"""
 
-    def validation_step(self, batch, batch_idx):
-        return super().validation_step(batch, batch_idx)
+    def __init__(self, num_classes, lr=1e-3, weight_decay=1e-4):
+        super().__init__(num_classes, lr, weight_decay)
+        self.save_hyperparameters()
+        # load a pre-defined VGG11 model
+        self.vgg11 = models.vgg11(weights="default")
+        self.vgg11.features[0] = nn.Conv2d(2, 64, kernel_size=3, padding=1)
+        self.vgg11.classifier[-1] = nn.Linear(4096, num_classes)
+
+        self.criterion = nn.CrossEntropyLoss()
+        self.train_acc, self.val_acc = torchmetrics.Accuracy(
+            task="multiclass", num_classes=num_classes
+        ), torchmetrics.Accuracy(task="multiclass", num_classes=num_classes)
+
+    def forward(self, x):
+        """modified forward pass using VGG11 instead of existing model architecture"""
+        return self.vgg11(x)

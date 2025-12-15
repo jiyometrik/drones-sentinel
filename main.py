@@ -56,7 +56,7 @@ dl_test = DataLoader(ds_test, batch_size=64, shuffle=False, num_workers=0)
 train any models we create in src/cnn.py with one-shot training loop in src/model.py
 """
 # NOTE change model name here to try different architectures
-model = stft.cnn.STFTResNet(num_classes=N_CLASSES, lr=cts.LR)
+model = stft.cnn.STFTVgg11(num_classes=N_CLASSES, lr=cts.LR)
 print(model)
 trainer = mdl.train_model(
     model,

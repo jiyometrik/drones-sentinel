@@ -10,11 +10,11 @@ import torchmetrics
 from torch import nn
 
 
-class SimplePSDClassifier(pl.LightningModule):
+class PSDSimple(pl.LightningModule):
     """A simple 1D CNN for classifying PSDs, using only Conv1d and Linear layers"""
 
     def __init__(self, num_classes, lr=1e-3, weight_decay=1e-4):
-        super(SimplePSDClassifier, self).__init__()
+        super(PSDSimple, self).__init__()
         self.save_hyperparameters()
         self.conv1_3 = nn.Conv1d(2, 32, kernel_size=3, padding=1)
         self.conv1_5 = nn.Conv1d(2, 32, kernel_size=5, padding=2)
@@ -115,14 +115,14 @@ class SimplePSDClassifier(pl.LightningModule):
         }
 
 
-class VGG_PSDClassifier(pl.LightningModule):
+class PSDClassifierVGG(pl.LightningModule):
     """
-    VGG_PSDClassifier
+    PSDClassifierVGG
     A VGG-like CNN for classifying PSDs
     """
 
     def __init__(self, num_classes, lr=1e-3, weight_decay=1e-4):
-        super(VGG_PSDClassifier, self).__init__()
+        super(PSDClassifierVGG, self).__init__()
         self.save_hyperparameters()
 
         # dimensions for VGG convolutional blocks, in the format (num_convs, out_channels)

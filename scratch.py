@@ -10,7 +10,7 @@ import src.preprocessing as prep
 
 testfile = os.path.join(
     cts.DATADIR,
-    "DataCollection_HCJCTrack_110925\\Background_Ifft_5750_0m_1_40_40_01\\sweep\\10.ifft",
+    "DataCollection_HCJCTrack_110925/Background_Ifft_5750_0m_1_40_40_01/sweep/10.ifft",
 )
 s = prep.read_raw_ifft(testfile)
 print(s)
