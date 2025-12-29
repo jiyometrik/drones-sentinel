@@ -144,7 +144,7 @@ class STFTVgg11(STFTSimple):
         super().__init__(num_classes, lr, weight_decay)
         self.save_hyperparameters()
         # load a pre-defined VGG11 model
-        self.vgg11 = models.vgg11(weights="default")
+        self.vgg11 = models.vgg11()
         self.vgg11.features[0] = nn.Conv2d(2, 64, kernel_size=3, padding=1, bias=False)
         self.vgg11.classifier[-1] = nn.Linear(4096, num_classes)
 
