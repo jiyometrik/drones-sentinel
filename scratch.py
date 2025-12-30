@@ -3,25 +3,20 @@ scratch.py
 Just a file to test out some methods
 """
 
-import os
+import pandas as pd
 
 import src.constants as cts
 import src.preprocessing as prep
 
-testfile = os.path.join(
-    cts.DATADIR,
-    "DataCollection_HCJCTrack_110925/Background_Ifft_5750_0m_1_40_40_01/sweep/10.ifft",
-)
-s = prep.read_raw_ifft(testfile)
-print(s)
-f, t, Zxx = prep.compute_stft(s, representation="magnitude")
-print(f"{f = }", f"{t = }", f"{Zxx = }", sep="\n")
-print(f"\n{f.shape = }, {t.shape = }, {Zxx.shape = }")
+# process data, and compile into a DataFrame
+df_all = prep.load_ifft_df(cts.DATADIR, filename="df_all.pkl")
 
-# pad spectrogram
-Zxx_padded = prep.pad_spectrogram(
-    Zxx,
-    target_freq=cts.TARGET_FREQ,
-    target_time=cts.TARGET_TIME,
+# set up training and evaluation datasets
+CLASSES = df_all["dronetype"].unique().tolist()
+N_CLASSES = len(CLASSES)
+df_all["drone_idx"] = df_all["dronetype"].map(
+    pd.Series(range(N_CLASSES), index=CLASSES)
 )
-print(f"\n{Zxx = }\n{Zxx_padded.shape = }")
+
+for x in df_all["psd"].values:
+    print(x.shape)

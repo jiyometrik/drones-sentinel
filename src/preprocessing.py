@@ -214,7 +214,7 @@ def compute_welch_psd(
     iq_data, sample_rate=cts.SAMPLE_RATE, window="hann", nperseg=16_384, visualise=False
 ):
     """
-    compute_welch_psd(iq_data, sample_rate, window='hann', nperseg=8192, visualise=False)
+    compute_welch_psd(iq_data, sample_rate, window='hann', nperseg=16_384, visualise=False)
         -> (f, Pxx)
         - iq_data: numpy array of IQ data
         - sample_rate: sample rate (in Hz)

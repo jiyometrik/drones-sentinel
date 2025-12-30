@@ -11,8 +11,7 @@ from torch.utils.data import DataLoader
 
 import src.constants as cts
 import src.mlsuite.datasets as dsets
-
-# import src.mlsuite.psd as psd
+import src.mlsuite.psd as psd
 import src.mlsuite.stft as stft
 import src.model as mdl
 import src.preprocessing as prep
@@ -36,7 +35,7 @@ creates training and validation datasets, where
 * y are the drone types, indexed 0--3
 """
 scaler, le = StandardScaler(), LabelEncoder()
-X = np.stack(df_all["stft"].values)
+X = np.stack(df_all["psd"].values)
 X_scaled = scaler.fit_transform(X.reshape(X.shape[0], -1))
 X = X_scaled.reshape(X.shape)
 y = le.fit_transform(df_all["drone_idx"].values)
@@ -55,10 +54,10 @@ dl_train = DataLoader(ds_train, batch_size=16, shuffle=True, num_workers=n_worke
 dl_test = DataLoader(ds_test, batch_size=16, shuffle=False, num_workers=n_workers)
 
 """
-train any models we create in src/cnn.py with one-shot training loop in src/model.py
+train any models we create in src/cnn.py with training loop in src/model.py
+NOTE change model name here to try different architectures
 """
-# NOTE change model name here to try different architectures
-model = stft.cnn.STFTVgg11(num_classes=N_CLASSES, lr=cts.LR)
+model = psd.cnn.PSDClassifier1D(num_classes=N_CLASSES, lr=cts.LR)
 print(model)
 trainer = mdl.train_model(
     model,
