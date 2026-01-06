@@ -11,7 +11,6 @@ from torch.utils.data import DataLoader
 
 import src.constants as cts
 import src.mlsuite.datasets as dsets
-import src.mlsuite.psd as psd
 import src.mlsuite.stft as stft
 import src.model as mdl
 import src.preprocessing as prep
@@ -35,7 +34,7 @@ creates training and validation datasets, where
 * y are the drone types, indexed 0--3
 """
 scaler, le = StandardScaler(), LabelEncoder()
-X = np.stack(df_all["psd"].values)
+X = np.stack(df_all["stft"].values)
 X_scaled = scaler.fit_transform(X.reshape(X.shape[0], -1))
 X = X_scaled.reshape(X.shape)
 y = le.fit_transform(df_all["drone_idx"].values)
@@ -48,16 +47,18 @@ X_train, X_test, y_train, y_test = train_test_split(
 # ...then create datasets out of them
 ds_train = dsets.PSDDataset(X_train, y_train)
 ds_test = dsets.PSDDataset(X_test, y_test)
-
-n_workers = 0 if cts.OPERATING_SYSTEM == "win32" else 4
-dl_train = DataLoader(ds_train, batch_size=16, shuffle=True, num_workers=n_workers)
-dl_test = DataLoader(ds_test, batch_size=16, shuffle=False, num_workers=n_workers)
+dl_train = DataLoader(
+    ds_train, batch_size=cts.BATCH_SIZE, shuffle=True, num_workers=cts.N_WORKERS
+)
+dl_test = DataLoader(
+    ds_test, batch_size=cts.BATCH_SIZE, shuffle=False, num_workers=cts.N_WORKERS
+)
 
 """
 train any models we create in src/cnn.py with training loop in src/model.py
 NOTE change model name here to try different architectures
 """
-model = psd.cnn.PSDClassifier1D(num_classes=N_CLASSES, lr=cts.LR)
+model = stft.cnn.STFTResNet(num_classes=N_CLASSES)
 print(model)
 trainer = mdl.train_model(
     model,

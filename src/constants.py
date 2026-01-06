@@ -15,7 +15,10 @@ SAMPLE_RATE = 100_000_000
 
 # DRONETYPES = ['Aquila16', 'Background', 'DjiMini2', 'DjiRcN1']
 LR = 1e-3
+WEIGHT_DECAY = 1e-4
+BATCH_SIZE = 16
 N_EPOCHS = 20
+N_WORKERS = 0 if OPERATING_SYSTEM == "win32" else 4
 
 # dimensions for PSDs and STFTs
 TARGET_FREQ = 512
