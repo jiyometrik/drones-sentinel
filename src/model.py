@@ -24,6 +24,7 @@ def train_model(
     devices="auto",
     log_dir="lightning_logs",
 ):
+    torch.set_float32_matmul_precision('high')
     model_type = model.__class__.__name__
     """trains any model passed to it using pytorch lightning"""
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -52,7 +53,7 @@ def train_model(
         logger=logger,
         gradient_clip_val=1.0,  # gradient clipping
         log_every_n_steps=10,
-        deterministic=True,  # for reproducibility
+        deterministic=False,  # for reproducibility
         precision=(
             "16-mixed" if torch.cuda.is_available() else 32
         ),  # mixed precision if GPU available
