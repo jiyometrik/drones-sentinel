@@ -39,49 +39,42 @@ X_scaled = scaler.fit_transform(X.reshape(X.shape[0], -1))
 X = X_scaled.reshape(X.shape)
 y = le.fit_transform(df_all["drone_idx"].values)
 
-# split dataframe into training and test sets
-# X_train, X_test, y_train, y_test = train_test_split(
-#     X, y, test_size=0.25, random_state=42, stratify=y
-# )
-
-# train + temp split
+# split dataframe into training, validation and test sets
 X_train, X_temp, y_train, y_temp = train_test_split(
-    X, y,
+    X,
+    y,
     test_size=0.35,
     random_state=42,
     stratify=y,
 )
-
-# val + test split
 X_val, X_test, y_val, y_test = train_test_split(
-    X_temp, y_temp,
+    X_temp,
+    y_temp,
     test_size=0.5,
     random_state=42,
     stratify=y_temp,
 )
 
 # ...then create datasets out of them
-ds_train = dsets.PSDDataset(X_train, y_train, augment_enabled=False)
-ds_val = dsets.PSDDataset(X_val, y_val, augment_enabled=False)
-ds_test = dsets.PSDDataset(X_test, y_test, augment_enabled=False)
+ds_train = dsets.IFFTDataset(X_train, y_train, augment_enabled=cts.AUGMENT)
+ds_val = dsets.IFFTDataset(X_val, y_val, augment_enabled=cts.AUGMENT)
+ds_test = dsets.IFFTDataset(X_test, y_test, augment_enabled=cts.AUGMENT)
 
 dl_train = DataLoader(
-    ds_train, batch_size=cts.BATCH_SIZE, shuffle=True, num_workers=cts.N_WORKERS
+    ds_train, batch_size=cts.BATCH_SIZE, shuffle=False, num_workers=cts.N_WORKERS
 )
-
 dl_val = DataLoader(
-    ds_val, batch_size=cts.BATCH_SIZE, shuffle=False, num_workers=cts.N_WORKERS
+    ds_val, batch_size=cts.BATCH_SIZE, shuffle=True, num_workers=cts.N_WORKERS
 )
-
 dl_test = DataLoader(
-    ds_test, batch_size=cts.BATCH_SIZE, shuffle=False, num_workers=cts.N_WORKERS
+    ds_test, batch_size=cts.BATCH_SIZE, shuffle=True, num_workers=cts.N_WORKERS
 )
 
 """
-train any models we create in src/cnn.py with training loop in src/model.py
+Train any model we create in src/cnn.py with training loop in src/model.py
 NOTE change model name here to try different architectures
 """
-model = stft.cnn.STFTMobileNetV2(num_classes=N_CLASSES)
+model = stft.cnn.STFTDenseNet121(num_classes=N_CLASSES)
 print(model)
 trainer = mdl.train_model(
     model,

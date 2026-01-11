@@ -18,6 +18,7 @@ LR = 1e-3
 WEIGHT_DECAY = 1e-4
 BATCH_SIZE = 16
 N_EPOCHS = 20
+AUGMENT = False
 N_WORKERS = 0 if OPERATING_SYSTEM == "win32" else 4
 
 # dimensions for PSDs and STFTs

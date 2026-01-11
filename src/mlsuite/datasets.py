@@ -1,19 +1,21 @@
 """
 src.mlsuite.datasets
-custom dataset classes for PyTorch
+Custom dataset classes for PyTorch
 """
+
+import random
 
 import pandas as pd
 import torch
 from torch.utils.data import Dataset
-import random
+
 from src.mlsuite import augment
 
 
-class PSDDataset(Dataset):
+class IFFTDataset(Dataset):
     """
-    custom IFFT data dataset using Welch's PSDs
-    X: ifft_dict["psd"] (pandas.Series of numpy.ndarray)
+    Custom IFFT data dataset using STFTs
+    X: ifft_dict["stft"] (pandas.Series of numpy.ndarray)
     y: ifft_dict["drone_idx"] (pandas.Series of int64)
     """
 
@@ -44,9 +46,9 @@ class PSDDataset(Dataset):
                 mag = augment.amp_scale(mag)
 
         x = torch.cat([mag, phase], dim=0)
-  
 
         return x, y
+
 
 class PSDSequenceDataset(Dataset):
     """

@@ -1,6 +1,6 @@
 """
 src.preprocessing
-helpful methods to preprocess data for training and evaluation
+Helpful methods to preprocess data for training and evaluation
 """
 
 import glob
@@ -78,7 +78,7 @@ def compute_stft(
     representation: str = "magnitude",
 ):
     """
-    compute STFT from IQ data.
+    Compute STFT from IQ data.
         - iq_data: Complex IQ samples
         - nperseg: Length of each segment (window size)
         - noverlap: Number of points to overlap (default: nperseg // 2)

@@ -5,14 +5,11 @@ All the CNNs used for STFT classification tasks
 
 import pytorch_lightning as pl
 import torch
-import torch.nn.functional as F
 import torchmetrics
 import torchvision.models as models
 from torch import nn
-import torchmetrics
-from torchmetrics.classification import MulticlassF1Score
-import src.constants as cts
 
+import src.constants as cts
 
 
 class STFTTemplate(pl.LightningModule):
@@ -31,36 +28,27 @@ class STFTTemplate(pl.LightningModule):
             task="multiclass", num_classes=num_classes
         )
         self.val_acc = torchmetrics.Accuracy(task="multiclass", num_classes=num_classes)
-        
-        self.test_acc = torchmetrics.Accuracy(task="multiclass", num_classes=num_classes)
+        self.test_acc = torchmetrics.Accuracy(
+            task="multiclass", num_classes=num_classes
+        )
 
-        self.test_f1 = MulticlassF1Score(num_classes=num_classes, average="macro")
-
-        self.train_f1 = MulticlassF1Score(num_classes=num_classes, average="macro")
-
-        self.val_f1 = MulticlassF1Score(num_classes=num_classes, average="macro")
-
-    def forward(self, x):
-        """forward pass through the network"""
-        x = self.pool1(F.relu(self.bn1(self.conv1(x))))
-        x = self.pool2(F.relu(self.bn2(self.conv2(x))))
-        x = self.pool3(F.relu(self.bn3(self.conv3(x))))
-        x = self.pool4(F.relu(self.bn4(self.conv4(x))))
-        x = self.gap(x)
-        x = x.view(x.size(0), -1)  # flatten
-        x = self.dropout1(F.relu(self.fc1(x)))
-        x = self.dropout2(F.relu(self.fc2(x)))
-        x = self.fc3(x)
-
-        return x
+        self.train_f1 = torchmetrics.classification.MulticlassF1Score(
+            num_classes=num_classes, average="macro"
+        )
+        self.val_f1 = torchmetrics.classification.MulticlassF1Score(
+            num_classes=num_classes, average="macro"
+        )
+        self.test_f1 = torchmetrics.classification.MulticlassF1Score(
+            num_classes=num_classes, average="macro"
+        )
 
     def training_step(self, batch, batch_idx):
-        """training step for lightning module"""
+        """training step for LightningModule"""
         inputs, labels = batch
         outputs = self(inputs)
         loss = self.criterion(outputs, labels)
 
-        # calculate acc
+        # calculate metrics
         preds = torch.argmax(outputs, dim=1)
         acc = self.train_acc(preds, labels)
         f1 = self.train_f1(preds, labels)
@@ -68,11 +56,11 @@ class STFTTemplate(pl.LightningModule):
         # log metrics
         self.log("train_loss", loss, prog_bar=True, on_step=False, on_epoch=True)
         self.log("train_acc", acc, prog_bar=True, on_step=False, on_epoch=True)
-        self.log("f1", f1, prog_bar=True, on_step=False, on_epoch=True)
+        self.log("train_f1", f1, prog_bar=True, on_step=False, on_epoch=True)
         return loss
 
     def validation_step(self, batch):
-        """validation step for lightning module"""
+        """validation step for LightningModule"""
         inputs, labels = batch
         outputs = self(inputs)
         loss = self.criterion(outputs, labels)
@@ -83,9 +71,9 @@ class STFTTemplate(pl.LightningModule):
 
         self.log("val_loss", loss, prog_bar=True, on_step=False, on_epoch=True)
         self.log("val_acc", acc, prog_bar=True, on_step=False, on_epoch=True)
-        self.log("f1", f1, prog_bar=True, on_step=False, on_epoch=True)
+        self.log("val_f1", f1, prog_bar=True, on_step=False, on_epoch=True)
         return loss
-    
+
     def test_step(self, batch, batch_idx):
         inputs, labels = batch
         outputs = self(inputs)
@@ -123,7 +111,7 @@ class STFTTemplate(pl.LightningModule):
 
 
 class STFTResNet18(STFTTemplate):
-    """An STFT classifier using ResNet architecture"""
+    """A STFT classifier using ResNet architecture"""
 
     def __init__(self, num_classes):
         super().__init__(num_classes)
@@ -140,7 +128,7 @@ class STFTResNet18(STFTTemplate):
 
 
 class STFTVgg11(STFTTemplate):
-    """An STFT classifier using VGG11 architecture"""
+    """A STFT classifier using VGG11 architecture"""
 
     def __init__(self, num_classes):
         super().__init__(num_classes)
@@ -153,9 +141,10 @@ class STFTVgg11(STFTTemplate):
     def forward(self, x):
         """modified forward pass using VGG11 instead of existing model architecture"""
         return self.vgg11(x)
-    
+
+
 class STFTAlexNet(STFTTemplate):
-    """An STFT classifier using AlexNet architecture"""
+    """A STFT classifier using AlexNet architecture"""
 
     def __init__(self, num_classes):
         super().__init__(num_classes)
@@ -179,24 +168,23 @@ class STFTAlexNet(STFTTemplate):
     def forward(self, x):
         return self.alexnet(x)
 
+
 class STFTMobileNetV2(STFTTemplate):
-    """An STFT classifier using MobileNetV2 architecture"""
+    """A STFT classifier using MobileNetV2 architecture"""
 
     def __init__(self, num_classes):
         super().__init__(num_classes)
         self.save_hyperparameters()
 
         self.mobilenet = models.mobilenet_v2(pretrained=False)
-
         self.mobilenet.features[0][0] = nn.Conv2d(
-            in_channels=2,    # mag + phase
+            in_channels=2,  # mag + phase
             out_channels=32,
             kernel_size=3,
             stride=2,
             padding=1,
             bias=False,
         )
-
         self.mobilenet.classifier[1] = nn.Linear(
             self.mobilenet.classifier[1].in_features,
             num_classes,
@@ -204,3 +192,50 @@ class STFTMobileNetV2(STFTTemplate):
 
     def forward(self, x):
         return self.mobilenet(x)
+
+
+class STFTInceptionV3(STFTTemplate):
+    """A STFT classifier using InceptionV3 architecture"""
+
+    def __init__(self, num_classes):
+        super().__init__(num_classes)
+        self.save_hyperparameters()
+        self.inception = models.inception_v3(pretrained=False, aux_logits=False)
+        self.inception.Conv2d_1a_3x3.conv = nn.Conv2d(
+            in_channels=2,  # mag + phase
+            out_channels=32,
+            kernel_size=3,
+            stride=2,
+            bias=False,
+        )
+        self.inception.fc = nn.Linear(
+            self.inception.fc.in_features,
+            num_classes,
+        )
+
+    def forward(self, x):
+        return self.inception(x)
+
+
+class STFTDenseNet121(STFTTemplate):
+    """A STFT classifier using DenseNet121 architecture"""
+
+    def __init__(self, num_classes):
+        super().__init__(num_classes)
+        self.save_hyperparameters()
+        self.densenet = models.densenet121(pretrained=False)
+        self.densenet.features.conv0 = nn.Conv2d(
+            in_channels=2,  # mag + phase
+            out_channels=64,
+            kernel_size=7,
+            stride=2,
+            padding=3,
+            bias=False,
+        )
+        self.densenet.classifier = nn.Linear(
+            self.densenet.classifier.in_features,
+            num_classes,
+        )
+
+    def forward(self, x):
+        return self.densenet(x)
