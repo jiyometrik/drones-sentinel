@@ -217,25 +217,24 @@ class STFTInceptionV3(STFTTemplate):
         return self.inception(x)
 
 
-class STFTDenseNet121(STFTTemplate):
-    """A STFT classifier using DenseNet121 architecture"""
+class STFTSqueezeNet(STFTTemplate):
+    """A STFT classifier using SqueezeNet architecture"""
 
     def __init__(self, num_classes):
         super().__init__(num_classes)
         self.save_hyperparameters()
-        self.densenet = models.densenet121(pretrained=False)
-        self.densenet.features.conv0 = nn.Conv2d(
-            in_channels=2,  # mag + phase
-            out_channels=64,
-            kernel_size=7,
+        self.squeezenet = models.squeezenet1_1(pretrained=False)
+        self.squeezenet.features[0] = nn.Conv2d(
+            2,
+            64,
+            kernel_size=3,
             stride=2,
-            padding=3,
-            bias=False,
         )
-        self.densenet.classifier = nn.Linear(
-            self.densenet.classifier.in_features,
+        self.squeezenet.classifier[1] = nn.Conv2d(
+            512,
             num_classes,
+            kernel_size=1,
         )
 
     def forward(self, x):
-        return self.densenet(x)
+        return self.squeezenet(x)

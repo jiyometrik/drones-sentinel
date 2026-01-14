@@ -24,7 +24,7 @@ def train_model(
     devices="auto",
     log_dir="lightning_logs",
 ):
-    torch.set_float32_matmul_precision('high')
+    torch.set_float32_matmul_precision("high")
     model_type = model.__class__.__name__
     """trains any model passed to it using pytorch lightning"""
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
