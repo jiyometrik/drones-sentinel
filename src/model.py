@@ -13,20 +13,26 @@ from pytorch_lightning.callbacks import (
 )
 from pytorch_lightning.loggers import TensorBoardLogger
 
+import src.constants as cts
+
 
 def train_model(
     model,
     train_loader,
     val_loader,
     test_loader=None,
-    n_epochs=50,
+    n_epochs=cts.N_EPOCHS,
     accelerator="auto",
     devices="auto",
     log_dir="lightning_logs",
 ):
+    """
+    Trains a PyTorch Lightning model with given data loaders and parameters
+    """
     torch.set_float32_matmul_precision("high")
     model_type = model.__class__.__name__
-    """trains any model passed to it using pytorch lightning"""
+
+    # Naming conventions for checkpoints and logs
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     checkpoint_callback = ModelCheckpoint(
         monitor="val_acc",

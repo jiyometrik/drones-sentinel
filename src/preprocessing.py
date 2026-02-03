@@ -4,6 +4,7 @@ Helpful methods to preprocess data for training and evaluation
 """
 
 import glob
+import io
 import os
 import zipfile
 from typing import Optional
@@ -210,30 +211,57 @@ def pad_spectrogram(
     return spectrogram
 
 
-def compute_welch_psd(
-    iq_data, sample_rate=cts.SAMPLE_RATE, window="hann", nperseg=16_384, visualise=False
+def visualise_wpsd(f, Pxx, output_ndarray: bool = False) -> Optional[np.ndarray]:
+    """
+    Visualise a Welch PSD with a power-frequency plot.
+    Optionally convert graph visualisation into np.ndarray for image processing
+    """
+    print("[OK] Plotting wPSD")
+    fig = plt.figure(figsize=(12, 8))
+    ax = fig.add_subplot(111)
+    ax.semilogy(f, Pxx)
+
+    # Remove unnecessary labels if we're generating ndarray
+    ax.set_title("" if output_ndarray else "wPSD")
+    ax.set_xlabel("" if output_ndarray else "Frequency (MHz)")
+    ax.set_ylabel("" if output_ndarray else "Power (V^2/Hz)")
+    plt.tight_layout()
+
+    if not output_ndarray:
+        plt.show()
+    if output_ndarray:
+        fig.canvas.draw()
+        rgba_buffer = fig.canvas.buffer_rgba()
+        # Returns [H, W, 4] RGBA image
+        img_data = np.asarray(rgba_buffer)
+        # Apply luminosity formula to turn RGBA data into grayscale (shape: [H, W])
+        img_grayscale = np.dot(img_data[:, :, :3], [0.2989, 0.5870, 0.1140])
+        print("[OK] Generating np.ndarray of wPSD image, size =", img_grayscale.shape)
+        plt.close()
+        return img_grayscale
+
+
+def compute_wpsd(
+    iq_data,
+    sample_rate=cts.SAMPLE_RATE,
+    window="hann",
+    nperseg=cts.TARGET_FREQ,
+    visualise=False,
 ):
     """
-    compute_welch_psd(iq_data, sample_rate, window='hann', nperseg=16_384, visualise=False)
+    compute_wpsd(iq_data, sample_rate, window, nperseg, visualise)
         -> (f, Pxx)
         - iq_data: numpy array of IQ data
         - sample_rate: sample rate (in Hz)
         - window: type of window to use in Welch's method
         - nperseg: number of samples per segment for Welch's method
         - visualise: whether to plot the wPSD result
-    computes the Welch power spectral density (PSD) of IFFT data
+    Computes the Welch power spectral density (PSD) of IFFT data
     """
     f, Pxx = signal.welch(iq_data, fs=sample_rate, nperseg=nperseg, window=window)
-
+    print("[OK] Computed wPSD with shape =", Pxx.shape)
     if visualise:
-        print("[OK] Plotting wPSD")
-        plt.figure(figsize=(12, 8))
-        plt.semilogy(f, Pxx)
-        plt.title("wPSD")
-        plt.xlabel("Frequency [MHz]")
-        plt.ylabel("Power [V^2/Hz]")
-        plt.show()
-
+        visualise_wpsd(f, Pxx, output_ndarray=False)
     return f, Pxx
 
 
@@ -246,11 +274,12 @@ def generate_ifft_df(datadir=cts.DATADIR) -> pd.DataFrame:
     """
     column_names = [
         "psd",
+        "psd_image",
         "stft",
         "dronetype",
-        "frequency_ghz",
+        "frequency_GHz",
         "distance_m",
-        "gain_mhz",
+        "gain_MHz",
     ]
     ifft_df = pd.DataFrame(columns=column_names)
 
@@ -262,8 +291,11 @@ def generate_ifft_df(datadir=cts.DATADIR) -> pd.DataFrame:
         ifft_data = read_raw_ifft(fpath)
 
         # compute wPSD
-        f, Pxx = compute_welch_psd(ifft_data, visualise=False)
+        f, Pxx = compute_wpsd(ifft_data, visualise=False)
         psd = np.stack((f, Pxx))
+
+        # compute np.ndarray image of wPSD
+        psd_image = visualise_wpsd(f, Pxx, output_ndarray=True)
 
         # compute STFT
         _, _, stft = compute_stft(ifft_data, representation="magnitude")
@@ -286,7 +318,7 @@ def generate_ifft_df(datadir=cts.DATADIR) -> pd.DataFrame:
 
         # and then load them into the dictionary
         entry = pd.DataFrame(
-            [[psd, stft, dronetype, freq_ghz, distance_m, gain_mhz]],
+            [[psd, psd_image, stft, dronetype, freq_ghz, distance_m, gain_mhz]],
             columns=column_names,
         )
         try:
@@ -301,7 +333,7 @@ def load_ifft_df(datadir=cts.DATADIR, filename="df_all.pkl") -> pd.DataFrame:
     load_ifft_df(datadir, filename) -> pd.DataFrame
         - datadir: directory containing the DataFrame pickle file
         - filename: name of the pickle file
-    loads a DataFrame from a pickle file in the specified directory
+    Loads a DataFrame from a .pkl file in the specified directory
     """
     fpath = os.path.join(datadir, filename)
     if os.path.exists(fpath):

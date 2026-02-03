@@ -5,13 +5,15 @@ This hardcarries everything
 
 import numpy as np
 import pandas as pd
-import torchview
+import torch
+import torchviz
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 from torch.utils.data import DataLoader
 
 import src.constants as cts
-import src.mlsuite.datasets as dsets
+import src.datasets as dsets
+import src.mlsuite.psd as psd
 import src.mlsuite.stft as stft
 import src.model as mdl
 import src.preprocessing as prep
@@ -29,9 +31,9 @@ df_all["drone_idx"] = df_all["dronetype"].map(
     pd.Series(range(N_CLASSES), index=CLASSES)
 )
 
-# Scale STFT data
+# Scale data with StandardScaler
 scaler, le = StandardScaler(), LabelEncoder()
-X = np.stack(df_all["stft"].values)
+X = np.stack(df_all["psd_image"].values)
 X_scaled = scaler.fit_transform(X.reshape(X.shape[0], -1))
 X = X_scaled.reshape(X.shape)
 y = le.fit_transform(df_all["drone_idx"].values)
@@ -53,9 +55,13 @@ X_val, X_test, y_val, y_test = train_test_split(
 )
 
 # ...then create datasets out of them
-ds_train = dsets.IFFTDataset(X_train, y_train, augment_enabled=cts.AUGMENT_TRAIN_SET)
-ds_val = dsets.IFFTDataset(X_val, y_val, augment_enabled=False)
-ds_test = dsets.IFFTDataset(X_test, y_test, augment_enabled=False)
+ds_train = dsets.WelchPsdDataset(X_train, y_train)
+ds_val = dsets.WelchPsdDataset(X_val, y_val)
+ds_test = dsets.WelchPsdDataset(X_test, y_test)
+
+# print(f"{X_train[0].shape = }")
+# NOTE needs fixing, dimensions funky
+print(f"{ds_train[0].shape = }")
 
 dl_train = DataLoader(
     ds_train, batch_size=cts.BATCH_SIZE, shuffle=True, num_workers=cts.N_WORKERS
@@ -68,19 +74,20 @@ dl_test = DataLoader(
 )
 
 """
-Train any model we create in mlsuite.stft.cnn
+Train any model we create on [WelchPsdDataset | IFFTDataset]
 NOTE Change model name here to try different architectures
 """
-model = stft.cnn.STFTSqueezeNet(num_classes=N_CLASSES)
-trainer = mdl.train_model(
-    model,
-    train_loader=dl_train,
-    val_loader=dl_val,
-    n_epochs=cts.N_EPOCHS,
-)
+model = psd.cnn.PSDAlexNet(num_classes=N_CLASSES)
+print(model)
+# trainer = mdl.train_model(
+#     model,
+#     train_loader=dl_train,
+#     val_loader=dl_val,
+#     n_epochs=cts.N_EPOCHS,
+# )
 
-# Then run the testing loop to get test_acc and test_f1
-trainer.test(
-    model=model,
-    dataloaders=dl_test,
-)
+# # Then run the testing loop to get test_acc and test_f1
+# trainer.test(
+#     model=model,
+#     dataloaders=dl_test,
+# )

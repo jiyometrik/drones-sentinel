@@ -9,7 +9,7 @@ import pandas as pd
 import torch
 from torch.utils.data import Dataset
 
-from src.mlsuite import augment
+from src.mlsuite.stft import augment
 
 
 class IFFTDataset(Dataset):
@@ -44,7 +44,6 @@ class IFFTDataset(Dataset):
                 mag = augment.add_noise(mag)
             if random.random() < 0.5:
                 mag = augment.amp_scale(mag)
-
         x = torch.cat([mag, phase], dim=0)
 
         return x, y
@@ -54,6 +53,27 @@ class PSDSequenceDataset(Dataset):
     """
     X: numpy array or list with shape (N, T, F)
     y: labels (N,)
+    """
+
+    def __init__(self, X, y):
+        self.X = X.tolist() if isinstance(X, pd.Series) else X
+        self.y = y.tolist() if isinstance(y, pd.Series) else y
+
+    def __len__(self):
+        return len(self.X)
+
+    def __getitem__(self, idx):
+        return (
+            torch.FloatTensor(self.X[idx]),
+            torch.LongTensor([self.y[idx]]).squeeze(),
+        )
+
+
+class WelchPsdDataset(Dataset):
+    """
+    NOTE needs fixing, dimensions funky
+    X: np.ndarray with shape (H, W)
+    y: Labels (N,)
     """
 
     def __init__(self, X, y):
