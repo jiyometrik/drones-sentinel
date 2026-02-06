@@ -65,7 +65,7 @@ def read_raw_ifft(fpath, datadir=cts.DATADIR) -> np.ndarray:
         except Exception as e:
             print(f"[XXX] Failed {dt} for {os.path.relpath(fpath, datadir)}: {e}")
     raise ValueError(
-        f"Could not interpret {os.path.relpath(fpath, datadir)} with common dtypes"
+        f"[XXX] Could not interpret {os.path.relpath(fpath, datadir)} with common dtypes"
     )
 
 
@@ -120,7 +120,7 @@ def compute_stft(
     elif representation == "real_imag":
         rep = np.stack([Zxx.real, Zxx.imag], axis=0)
     else:
-        raise ValueError(f"[ERROR] Unknown STFT representation '{representation}'")
+        raise ValueError(f"[XXX] Unknown STFT representation '{representation}'")
     return f, t, rep
 
 
@@ -216,7 +216,7 @@ def visualise_wpsd(f, Pxx, output_ndarray: bool = False) -> Optional[np.ndarray]
     Visualise a Welch PSD with a power-frequency plot.
     Optionally convert graph visualisation into np.ndarray for image processing
     """
-    print("[OK] Plotting wPSD")
+    print("[OK] Generating wPSD")
     fig = plt.figure(figsize=(12, 8))
     ax = fig.add_subplot(111)
     ax.semilogy(f, Pxx)
@@ -228,6 +228,7 @@ def visualise_wpsd(f, Pxx, output_ndarray: bool = False) -> Optional[np.ndarray]
     plt.tight_layout()
 
     if not output_ndarray:
+        print("[OK] Plotting wPSD")
         plt.show()
     if output_ndarray:
         fig.canvas.draw()
@@ -236,9 +237,11 @@ def visualise_wpsd(f, Pxx, output_ndarray: bool = False) -> Optional[np.ndarray]
         img_data = np.asarray(rgba_buffer)
         # Apply luminosity formula to turn RGBA data into grayscale (shape: [H, W])
         img_grayscale = np.dot(img_data[:, :, :3], [0.2989, 0.5870, 0.1140])
-        print("[OK] Generating np.ndarray of wPSD image, size =", img_grayscale.shape)
+        # Add channel dimension at the front, for Torch CNNs (shape: [1, H, W])
+        img = img_grayscale[np.newaxis, :, :]
+        print("[OK] Generating np.ndarray of wPSD image, size =", img.shape)
         plt.close()
-        return img_grayscale
+        return img
 
 
 def compute_wpsd(
@@ -272,6 +275,7 @@ def generate_ifft_df(datadir=cts.DATADIR) -> pd.DataFrame:
     reads all IFFT files in the specified directory and returns a DataFrame
     with columns 'dronenum' and 'ifft' containing the drone number and IFFT data
     """
+    print("[OK] Generating IFFT dataframe from files in", datadir)
     column_names = [
         "psd",
         "psd_image",
@@ -324,7 +328,8 @@ def generate_ifft_df(datadir=cts.DATADIR) -> pd.DataFrame:
         try:
             ifft_df = pd.concat([ifft_df, entry], ignore_index=True)
         except (ValueError, TypeError) as e:
-            print(f"Error processing file {fpath}: {e}. Skipping.")
+            print(f"[XXX] Error processing file {fpath}: {e}. Skipping.")
+    print("[OK] IFFT dataframe generated")
     return ifft_df
 
 

@@ -11,7 +11,7 @@ from torch import nn
 
 import src.constants as cts
 
-INPUT_CHANNELS = 16
+INPUT_CHANNELS = 1  # grayscale images
 
 
 class PSDTemplate(pl.LightningModule):
@@ -123,8 +123,9 @@ class PSDAlexNet(PSDTemplate):
 
         self.alexnet = models.alexnet(pretrained=False)
 
-        self.alexnet.features[0] = nn.LazyConv2d(
-            64,
+        self.alexnet.features[0] = nn.Conv2d(
+            in_channels=1,  # NOTE fixed!
+            out_channels=96,
             kernel_size=11,
             stride=4,
             padding=2,

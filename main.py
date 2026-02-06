@@ -59,10 +59,6 @@ ds_train = dsets.WelchPsdDataset(X_train, y_train)
 ds_val = dsets.WelchPsdDataset(X_val, y_val)
 ds_test = dsets.WelchPsdDataset(X_test, y_test)
 
-# print(f"{X_train[0].shape = }")
-# NOTE needs fixing, dimensions funky
-print(f"{ds_train[0].shape = }")
-
 dl_train = DataLoader(
     ds_train, batch_size=cts.BATCH_SIZE, shuffle=True, num_workers=cts.N_WORKERS
 )
@@ -77,17 +73,19 @@ dl_test = DataLoader(
 Train any model we create on [WelchPsdDataset | IFFTDataset]
 NOTE Change model name here to try different architectures
 """
+# NOTE needs fixing, dimensions funky
 model = psd.cnn.PSDAlexNet(num_classes=N_CLASSES)
 print(model)
-# trainer = mdl.train_model(
-#     model,
-#     train_loader=dl_train,
-#     val_loader=dl_val,
-#     n_epochs=cts.N_EPOCHS,
-# )
+trainer = mdl.train_model(
+    model,
+    train_loader=dl_train,
+    val_loader=dl_val,
+    n_epochs=cts.N_EPOCHS,
+)
 
 # # Then run the testing loop to get test_acc and test_f1
 # trainer.test(
 #     model=model,
 #     dataloaders=dl_test,
+# )
 # )
